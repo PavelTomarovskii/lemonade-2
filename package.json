@@ -13,7 +13,17 @@
     "lint": "eslint . --max-warnings=0",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "prepare": "husky"
+    "prepare": "husky",
+    "test": "playwright test --project=unit --project=chromium",
+    "test:all-browsers": "playwright test",
+    "test:unit": "playwright test --project=unit",
+    "test:smoke": "playwright test --project=chromium --grep @smoke",
+    "test:coverage": "playwright test --project=chromium --grep @coverage",
+    "test:valuable-items": "playwright test --project=chromium --grep @valuable-items",
+    "test:add-ons": "playwright test --project=chromium --grep @add-ons",
+    "test:deductible": "playwright test --project=chromium --grep @deductible",
+    "test:price-display": "playwright test --project=chromium --grep @price-display",
+    "report": "playwright show-report"
   },
   "devDependencies": {
     "@commitlint/cli": "^21.2.3",

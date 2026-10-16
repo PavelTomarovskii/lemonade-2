@@ -6,7 +6,7 @@ export type BillingPeriod = 'monthly' | 'annual';
 
 export interface PayAmount {
   amount: Money;
-  per: 'month' | 'year';
+  billingPeriod: BillingPeriod;
 }
 
 const BILLING_PERIOD_LABELS: Readonly<Record<BillingPeriod, RegExp>> = {
@@ -22,12 +22,14 @@ const PAY_LABEL = /^Pay (\$[\d,]+\.\d{2}) \/ (month|year)$/i;
  * digit roller holds every digit it has ever shown.
  */
 export class PriceSummary {
-  private readonly hero: Locator;
+  /** The top block holding the price bubble, the Billing period switch and the main Pay button. */
+  private readonly priceBlock: Locator;
   private readonly mainPayButton: Locator;
   private readonly payButtons: Locator;
 
   constructor(private readonly page: Page) {
-    this.hero = page.getByTestId('baseQuoteTopWrapper');
+    this.priceBlock = page.getByTestId('baseQuoteTopWrapper');
+    // Several buttons share the "Pay $…" name; the main one is the only one with a stable id.
     this.mainPayButton = page.locator('#gtm_button_pay_main');
     this.payButtons = page.getByRole('button', { name: /^Pay \$/ });
   }
@@ -39,19 +41,16 @@ export class PriceSummary {
 
   /** The monthly Price shown on the main Pay button. */
   async price(): Promise<Money> {
-    const { amount, per } = await this.payAmount();
-    if (per !== 'month')
+    const { amount, billingPeriod } = await this.payAmount();
+    if (billingPeriod !== 'monthly') {
       throw new Error('The Price is shown per year; select monthly billing first');
+    }
     return amount;
   }
 
   /** The Price once it has stopped changing; see `readSettled`. */
   async settledPrice(): Promise<Money> {
-    return readSettled(
-      this.page,
-      () => this.price(),
-      (a, b) => a.equals(b),
-    );
+    return readSettled(this.page, () => this.price());
   }
 
   /** The amount on the main Pay button, monthly or annual depending on the Billing period. */
@@ -59,8 +58,10 @@ export class PriceSummary {
     return parsePayLabel(await this.mainPayButton.textContent());
   }
 
-  /** The amount on every Pay button, including the sticky header one that appears on scroll. */
+  /** The amount on every Pay button. */
   async everyPayAmount(): Promise<PayAmount[]> {
+    // Three Pay buttons: the main one, the bottom one, and the sticky header one that only
+    // renders once the page is scrolled past the top block.
     await this.payButtons.last().scrollIntoViewIfNeeded();
     await this.payButtons.nth(2).waitFor();
     const labels = await this.payButtons.allTextContents();
@@ -69,7 +70,7 @@ export class PriceSummary {
 
   /** The crossed-out amount above the Price in the price bubble. */
   async listPrice(): Promise<Money> {
-    const bubble = this.hero.getByRole('button', { disabled: true });
+    const bubble = this.priceBlock.getByRole('button', { disabled: true });
     // The digit roller below it can also read as a whole amount; the List price comes first.
     const text = await bubble
       .getByText(/^\$[\d,]+\.\d{2}$/)
@@ -84,11 +85,14 @@ export class PriceSummary {
 
   async selectBillingPeriod(period: BillingPeriod): Promise<void> {
     // The styled label covers the native radio, so click the label as a customer would.
-    await this.hero.locator('label').filter({ hasText: BILLING_PERIOD_LABELS[period] }).click();
+    await this.priceBlock
+      .locator('label')
+      .filter({ hasText: BILLING_PERIOD_LABELS[period] })
+      .click();
   }
 
   private billingPeriodRadio(period: BillingPeriod): Locator {
-    return this.hero.getByRole('radio', { name: BILLING_PERIOD_LABELS[period] });
+    return this.priceBlock.getByRole('radio', { name: BILLING_PERIOD_LABELS[period] });
   }
 }
 
@@ -96,5 +100,8 @@ function parsePayLabel(label: string | null): PayAmount {
   const match = PAY_LABEL.exec(label?.trim() ?? '');
   if (!match) throw new Error(`Cannot read a Pay button label "${String(label)}"`);
   const [, amount = '', per = ''] = match;
-  return { amount: Money.parse(amount), per: per.toLowerCase() as PayAmount['per'] };
+  return {
+    amount: Money.parse(amount),
+    billingPeriod: per.toLowerCase() === 'month' ? 'monthly' : 'annual',
+  };
 }

@@ -13,9 +13,4 @@ export class ConfirmDialog {
     await this.root.getByRole('button', { name: 'Yes', exact: true }).click();
     await this.root.waitFor({ state: 'hidden' });
   }
-
-  async cancel(): Promise<void> {
-    await this.root.getByRole('button', { name: 'Cancel', exact: true }).click();
-    await this.root.waitFor({ state: 'hidden' });
-  }
 }

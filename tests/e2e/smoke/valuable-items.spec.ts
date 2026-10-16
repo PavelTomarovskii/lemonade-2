@@ -3,7 +3,7 @@ import { Money } from '../../../src/money';
 import { Tag } from '../../../src/tags';
 
 test.describe('Valuable items', { tag: Tag.smoke }, () => {
-  test('adds and removes an item', async ({ quotePage }) => {
+  test('adds and removes a Valuable item', async ({ quotePage }) => {
     const { valuableItems } = quotePage;
     expect(await valuableItems.added()).toEqual([]);
 

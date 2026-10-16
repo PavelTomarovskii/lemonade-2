@@ -1,7 +1,8 @@
-import { test as base } from '@playwright/test';
+import { expect as baseExpect, test as base } from '@playwright/test';
 import { loadConfig } from './config';
 import type { Money } from './money';
 import { QuotePage } from './pages/quote-page';
+import { moneyMatchers } from './support/money-matchers';
 import { baselinePriceFor } from './test-data/quotes';
 
 const { quoteId } = loadConfig(process.env);
@@ -26,4 +27,4 @@ export const test = base.extend<QuoteFixtures>({
   },
 });
 
-export { expect } from '@playwright/test';
+export const expect = baseExpect.extend(moneyMatchers);

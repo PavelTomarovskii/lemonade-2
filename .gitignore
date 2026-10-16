@@ -1,0 +1,21 @@
+# Dependencies
+node_modules/
+
+# Playwright output
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/
+
+# Local-only material (source assignment, exploration notes, spec drafts;
+# the published spec lives in GitHub issue #1)
+*.pdf
+docs/assignment/
+docs/research/
+docs/specs/
+
+# Local scratch space for throwaway scripts
+.scratch/
+
+# OS / editor
+.DS_Store

@@ -26,7 +26,7 @@ function parseBaseUrl(value: string): string {
 function parseQuoteId(value: string): string {
   if (!/^[A-Za-z0-9]+$/.test(value)) {
     throw new Error(
-      `Invalid QUOTE_ID "${value}": expected letters and digits only, e.g. LQ42EE07089`,
+      `Invalid QUOTE_ID "${value}": expected letters and digits only, e.g. ${DEFAULT_QUOTE_ID}`,
     );
   }
   return value;

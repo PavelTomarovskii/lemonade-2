@@ -2,7 +2,7 @@ import { defineConfig, devices } from '@playwright/test';
 import { loadConfig } from './src/config';
 
 // Validates BASE_URL and QUOTE_ID before any test runs.
-const config = loadConfig(process.env);
+const suiteConfig = loadConfig(process.env);
 const isCI = Boolean(process.env.CI);
 
 export default defineConfig({
@@ -11,7 +11,7 @@ export default defineConfig({
   retries: isCI ? 1 : 0,
   reporter: [['list'], ['html', { open: 'never' }], ...(isCI ? [['github'] as const] : [])],
   use: {
-    baseURL: config.baseUrl,
+    baseURL: suiteConfig.baseUrl,
     headless: true,
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',

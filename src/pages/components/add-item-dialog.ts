@@ -1,7 +1,6 @@
 import type { Locator, Page } from '@playwright/test';
-import { Money } from '../../money';
-import { readSettled } from '../../support/settled';
-import { claimInLabel, openModal } from './modal';
+import type { Money } from '../../money';
+import { openModal, settledClaim } from './modal';
 
 /**
  * The two-step dialog that adds a Valuable item: enter its value, confirm it ("Add"), then
@@ -17,6 +16,8 @@ export class AddItemDialog {
   constructor(private readonly page: Page) {
     this.root = openModal(page);
     this.valueInput = this.root.getByRole('textbox', { name: 'input-field', exact: true });
+    // One button serves both steps: it holds the "Add (+$x)/MO" and "Got it" labels at once
+    // and slides between them, so it is found by the label it always contains.
     this.callToAction = this.root.getByRole('button').filter({ hasText: 'Got it' });
     this.errorMessage = this.root.getByLabel('error-message', { exact: true });
   }
@@ -30,28 +31,16 @@ export class AddItemDialog {
    * validates and re-prices on real keystrokes and blur.
    */
   async enterValue(value: Money): Promise<void> {
-    if (value.cents % 100 !== 0) throw new Error(`Enter whole dollars, not ${value.toString()}`);
+    const digits = String(value.wholeDollars());
     await this.valueInput.click();
     await this.valueInput.press('ControlOrMeta+a');
-    await this.valueInput.pressSequentially(String(value.cents / 100));
+    await this.valueInput.pressSequentially(digits);
     await this.valueInput.press('Tab');
   }
 
-  /**
-   * The Price impact the dialog claims for the entered value. The claim refreshes shortly
-   * after the value changes with no visible loading state, so it is read once settled.
-   */
+  /** The Price impact the dialog claims for the entered value. */
   async claimedPriceImpact(): Promise<Money> {
-    return readSettled(
-      this.page,
-      async () => {
-        const label = await this.callToAction.textContent();
-        const claim = claimInLabel(label);
-        if (claim === undefined) throw new Error(`No Price impact in "${String(label)}"`);
-        return Money.parse(claim);
-      },
-      (a, b) => a.equals(b),
-    );
+    return settledClaim(this.page, this.callToAction);
   }
 
   async canConfirm(): Promise<boolean> {

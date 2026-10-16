@@ -21,10 +21,9 @@ const TIMEOUT_MS = 10_000;
  * Reads a value repeatedly until it has stayed the same for {@link STABILITY_WINDOW_MS}.
  * Call it only after the triggering action has been confirmed in the UI.
  */
-export async function readSettled<T>(
+export async function readSettled<T extends { equals(other: T): boolean; toString(): string }>(
   page: Page,
   read: () => Promise<T>,
-  isSame: (a: T, b: T) => boolean,
 ): Promise<T> {
   const startedAt = Date.now();
   let value = await read();
@@ -32,13 +31,13 @@ export async function readSettled<T>(
   while (Date.now() - unchangedSince < STABILITY_WINDOW_MS) {
     if (Date.now() - startedAt > TIMEOUT_MS) {
       throw new Error(
-        `Value did not settle within ${String(TIMEOUT_MS)} ms; last read ${String(value)}`,
+        `Value did not settle within ${String(TIMEOUT_MS)} ms; last read ${value.toString()}`,
       );
     }
     // eslint-disable-next-line playwright/no-wait-for-timeout -- the documented stability window
     await page.waitForTimeout(POLL_INTERVAL_MS);
     const next = await read();
-    if (!isSame(next, value)) {
+    if (!next.equals(value)) {
       value = next;
       unchangedSince = Date.now();
     }

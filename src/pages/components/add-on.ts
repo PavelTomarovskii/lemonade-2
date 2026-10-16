@@ -1,8 +1,7 @@
 import type { Locator, Page } from '@playwright/test';
 import { Money } from '../../money';
-import { readSettled } from '../../support/settled';
 import { ConfirmDialog } from './confirm-dialog';
-import { claimInLabel, openModal } from './modal';
+import { openModal, settledClaim } from './modal';
 
 export type AddOnName =
   | 'Interested party'
@@ -14,21 +13,40 @@ export type AddOnName =
 
 /** How an Add-on's form dialog is configured when switching it on. */
 export interface AddOnOptions {
-  /** Water back-up only. Defaults to the dialog's $5,000. */
-  waterBackUpLimit?: 5_000 | 10_000;
+  /** Water back-up only: the insured amount, in dollars. Defaults to the dialog's 5,000. */
+  waterBackUpAmount?: 5_000 | 10_000;
   /** Landlord property damage only: also cover tenant pet damage. Water damage stays on. */
   tenantPetDamage?: boolean;
 }
 
 type Form = 'interested party' | 'person' | 'water back-up' | 'landlord damage' | 'none';
 
-const CARDS: Readonly<Record<AddOnName, { title: RegExp; form: Form }>> = {
-  'Interested party': { title: /^interested party\/landlord$/i, form: 'interested party' },
-  Spouse: { title: /^spouse$/i, form: 'person' },
-  'Significant other': { title: /^significant other$/i, form: 'person' },
-  'Water back-up': { title: /^water back-up$/i, form: 'water back-up' },
-  'Landlord property damage': { title: /^landlord property damage$/i, form: 'landlord damage' },
-  'Appliance breakdown': { title: /^appliance \(a\.k\.a\. equipment\) breakdown$/i, form: 'none' },
+interface Card {
+  title: RegExp;
+  form: Form;
+  /** Whether the form dialog's Add button claims a Price impact ("Add (+$x)/MO" vs "Add"). */
+  dialogClaimsImpact: boolean;
+}
+
+const CARDS: Readonly<Record<AddOnName, Card>> = {
+  'Interested party': {
+    title: /^interested party\/landlord$/i,
+    form: 'interested party',
+    dialogClaimsImpact: false,
+  },
+  Spouse: { title: /^spouse$/i, form: 'person', dialogClaimsImpact: false },
+  'Significant other': { title: /^significant other$/i, form: 'person', dialogClaimsImpact: true },
+  'Water back-up': { title: /^water back-up$/i, form: 'water back-up', dialogClaimsImpact: true },
+  'Landlord property damage': {
+    title: /^landlord property damage$/i,
+    form: 'landlord damage',
+    dialogClaimsImpact: true,
+  },
+  'Appliance breakdown': {
+    title: /^appliance \(a\.k\.a\. equipment\) breakdown$/i,
+    form: 'none',
+    dialogClaimsImpact: false,
+  },
 };
 
 // The card's price label: "Free", "+$1.67/MO" or "Starts from+$0.83/MO".
@@ -40,7 +58,7 @@ const CARD_CLAIM = /^(?:starts from\s*)?(free|[+-]\$[\d,]+(?:\.\d{1,2})?\/MO)$/i
  */
 export class AddOn {
   private readonly root: Locator;
-  private readonly form: Form;
+  private readonly card: Card;
   private readonly switchLabel: Locator;
 
   constructor(
@@ -48,11 +66,11 @@ export class AddOn {
     policyOptions: Locator,
     name: AddOnName,
   ) {
-    const { title, form } = CARDS[name];
-    this.form = form;
+    this.card = CARDS[name];
+    // Each card's id is "addon-<type>"; the prefix marks the card's bounds, the title picks it.
     this.root = policyOptions
       .locator('[id^="addon-"]')
-      .filter({ has: page.getByRole('heading', { name: title }) });
+      .filter({ has: page.getByRole('heading', { name: this.card.title }) });
     this.switchLabel = this.root.getByText('Toggle', { exact: true });
   }
 
@@ -76,19 +94,15 @@ export class AddOn {
    */
   async switchOn(options: AddOnOptions = {}): Promise<Money> {
     await this.switchLabel.click();
-    if (this.form === 'none') {
+    if (this.card.form === 'none') {
       await this.waitUntilSwitched(true);
       return this.claimedPriceImpact();
     }
     const dialog = openModal(this.page);
     const addButton = dialog.getByRole('button', { name: /^Add/ });
     await this.fillForm(dialog, options);
-    const claimed = claimInLabel(await addButton.textContent())
-      ? await readSettled(
-          this.page,
-          async () => Money.parse(claimInLabel(await addButton.textContent()) ?? ''),
-          (a, b) => a.equals(b),
-        )
+    const claimed = this.card.dialogClaimsImpact
+      ? await settledClaim(this.page, addButton)
       : await this.claimedPriceImpact();
     await addButton.click();
     await dialog.waitFor({ state: 'hidden' });
@@ -104,7 +118,7 @@ export class AddOn {
   }
 
   private async fillForm(dialog: Locator, options: AddOnOptions): Promise<void> {
-    switch (this.form) {
+    switch (this.card.form) {
       case 'interested party':
         await typeInto(dialog, 'Name', 'Jane Landlord');
         await typeInto(dialog, 'Address', '1 Main Street, Springfield');
@@ -116,7 +130,7 @@ export class AddOn {
         break;
       case 'water back-up':
         await dialog.getByLabel('input-value', { exact: true }).waitFor();
-        if (options.waterBackUpLimit === 10_000) {
+        if (options.waterBackUpAmount === 10_000) {
           await dialog.getByRole('button', { name: 'increase', exact: true }).click();
         }
         break;

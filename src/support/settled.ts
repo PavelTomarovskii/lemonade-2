@@ -10,18 +10,24 @@ import type { Page } from '@playwright/test';
  *
  * This is the suite's only time-window wait. Use it only where a retrying assertion cannot work:
  * when the value may legitimately not change at all (a free Add-on, a round trip back to the
- * Baseline price, a claim that refreshes with no visible loading state).
+ * Baseline price, a claim that refreshes with no visible loading state, a Coverage stepper
+ * whose debounced save shows nothing until it starts).
  */
 export const STABILITY_WINDOW_MS = 1_000;
 
 const POLL_INTERVAL_MS = 100;
 const TIMEOUT_MS = 10_000;
 
+interface Comparable<T> {
+  equals(other: T): boolean;
+  toString(): string;
+}
+
 /**
  * Reads a value repeatedly until it has stayed the same for {@link STABILITY_WINDOW_MS}.
  * Call it only after the triggering action has been confirmed in the UI.
  */
-export async function readSettled<T extends { equals(other: T): boolean; toString(): string }>(
+export async function readSettled<T extends string | Comparable<T>>(
   page: Page,
   read: () => Promise<T>,
 ): Promise<T> {
@@ -37,10 +43,14 @@ export async function readSettled<T extends { equals(other: T): boolean; toStrin
     // eslint-disable-next-line playwright/no-wait-for-timeout -- the documented stability window
     await page.waitForTimeout(POLL_INTERVAL_MS);
     const next = await read();
-    if (!next.equals(value)) {
+    if (!same(next, value)) {
       value = next;
       unchangedSince = Date.now();
     }
   }
   return value;
+}
+
+function same<T extends string | Comparable<T>>(a: T, b: T): boolean {
+  return typeof a === 'string' ? a === b : a.equals(b);
 }

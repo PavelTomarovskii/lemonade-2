@@ -93,4 +93,14 @@ test.describe('Money', () => {
       expect(Money.parse(text).toString()).toBe(formatted);
     });
   }
+
+  test('gives a whole amount in dollars', () => {
+    expect(Money.parse('$50,000').wholeDollars()).toBe(50_000);
+  });
+
+  test('refuses to give dollars for an amount with cents', () => {
+    expect(() => Money.parse('$14.33').wholeDollars()).toThrow(
+      '$14.33 is not a whole number of dollars',
+    );
+  });
 });

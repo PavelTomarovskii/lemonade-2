@@ -35,6 +35,13 @@ export class Money {
     return this.cents < other.cents;
   }
 
+  /** The amount in whole dollars, for typing into a value field. */
+  wholeDollars(): number {
+    if (this.cents % 100 !== 0)
+      throw new Error(`${this.toString()} is not a whole number of dollars`);
+    return this.cents / 100;
+  }
+
   /** Formats in the page's style, e.g. `$1,234.50` or `-$0.40`. */
   toString(): string {
     const sign = this.cents < 0 ? '-' : '';

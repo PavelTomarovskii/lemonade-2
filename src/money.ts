@@ -50,4 +50,9 @@ export class Money {
     const cents = String(absolute % 100).padStart(2, '0');
     return `${sign}$${dollars}.${cents}`;
   }
+
+  /** Formats like `toString()` but drops `.00`, as the page shows a Coverage or a Deductible. */
+  toShortString(): string {
+    return this.toString().replace(/\.00$/, '');
+  }
 }

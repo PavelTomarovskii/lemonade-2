@@ -94,6 +94,18 @@ test.describe('Money', () => {
     });
   }
 
+  for (const [text, formatted] of [
+    ['$50,000', '$50,000'],
+    ['$250', '$250'],
+    ['$14.33', '$14.33'],
+    ['+$4.6/MO', '$4.60'],
+    ['-$12', '-$12'],
+  ] as const) {
+    test(`formats ${text} as ${formatted}, without cents when there are none`, () => {
+      expect(Money.parse(text).toShortString()).toBe(formatted);
+    });
+  }
+
   test('gives a whole amount in dollars', () => {
     expect(Money.parse('$50,000').wholeDollars()).toBe(50_000);
   });

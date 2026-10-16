@@ -16,9 +16,9 @@ export class AddItemDialog {
   constructor(private readonly page: Page) {
     this.root = openModal(page);
     this.valueInput = this.root.getByRole('textbox', { name: 'input-field', exact: true });
-    // One button serves both steps: it holds the "Add (+$x)/MO" and "Got it" labels at once
-    // and slides between them, so it is found by the label it always contains.
-    this.callToAction = this.root.getByRole('button').filter({ hasText: 'Got it' });
+    // One button serves both steps, and its accessible name changes between them ("Add (+$x)/MO",
+    // then "Got it"), so it is found by its stable `item-action` class instead of its name.
+    this.callToAction = this.root.locator('button.item-action');
     this.errorMessage = this.root.getByLabel('error-message', { exact: true });
   }
 

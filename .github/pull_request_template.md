@@ -9,4 +9,4 @@ Closes #
 - [ ] Linked to its ticket above
 - [ ] Tests added or updated for the change
 - [ ] `npm run lint`, `npm run format:check`, `npm run typecheck` and the tests pass locally
-- [ ] Every known-bug marker (`test.fail()`) is annotated with a link to its GitHub issue (ADR-0001)
+- [ ] Every test that hits a confirmed bug is marked with `knownBug()`, which links its GitHub issue and expects the failure (ADR-0001)

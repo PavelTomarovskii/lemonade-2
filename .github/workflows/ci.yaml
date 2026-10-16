@@ -52,8 +52,7 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npx playwright install --with-deps ${{ matrix.browser }}
-      # --pass-with-no-tests keeps the job green until the first end-to-end tests land (M2).
-      - run: npx playwright test --project=${{ matrix.browser }} --pass-with-no-tests
+      - run: npx playwright test --project=${{ matrix.browser }}
       - uses: actions/upload-artifact@v7
         if: ${{ !cancelled() }}
         with:

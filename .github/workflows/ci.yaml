@@ -26,7 +26,7 @@ jobs:
           cache: npm
       - run: npm ci
       - name: Commit messages
-        if: github.event_name == 'pull_request' && github.actor != 'dependabot[bot]'
+        if: github.event_name == 'pull_request'
         run: >-
           npx commitlint
           --from ${{ github.event.pull_request.base.sha }}

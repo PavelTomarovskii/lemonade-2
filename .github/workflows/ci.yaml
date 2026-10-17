@@ -42,8 +42,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # WebKit is left out until the Quote page loads there (#23).
-        browser: [chromium, firefox]
+        browser: [chromium, firefox, webkit]
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -52,7 +51,8 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npx playwright install --with-deps ${{ matrix.browser }}
-      - run: npx playwright test --project=${{ matrix.browser }}
+      # --pass-with-no-tests keeps the job green until the first end-to-end tests land (M2).
+      - run: npx playwright test --project=${{ matrix.browser }} --pass-with-no-tests
       - uses: actions/upload-artifact@v7
         if: ${{ !cancelled() }}
         with:

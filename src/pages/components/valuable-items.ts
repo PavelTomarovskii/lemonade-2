@@ -20,6 +20,8 @@ export interface ListedItem {
   value: Money;
 }
 
+const TILE_IMPACT = /\+\$[\d,.]+\/MO/i;
+
 const ITEM_KINDS = Object.keys(ITEM_TILE_LABELS) as ItemKind[];
 
 /**
@@ -62,13 +64,15 @@ export class ValuableItems {
     await this.priceSummary.afterUpdate(() => this.confirmDialog.confirm());
   }
 
-  /** The monthly Price impact shown on the item's tile (one decimal, e.g. "+$4.6/MO"). */
+  /** The monthly Price impact on the item's tile, exactly as shown (e.g. "+$4.6/MO"). */
+  async tileMonthlyImpactText(kind: ItemKind): Promise<string> {
+    const text = await this.tile(kind).getByText(TILE_IMPACT).last().textContent();
+    return firstMatch(TILE_IMPACT, text).toUpperCase();
+  }
+
+  /** The monthly Price impact shown on the item's tile, read as an amount. */
   async tileMonthlyImpact(kind: ItemKind): Promise<Money> {
-    const text = await this.tile(kind)
-      .getByText(/\+\$[\d,.]+\/MO/i)
-      .last()
-      .textContent();
-    return Money.parseMonthlyImpact(firstMatch(/\+\$[\d,.]+\/MO/i, text).toUpperCase());
+    return Money.parseMonthlyImpact(await this.tileMonthlyImpactText(kind));
   }
 
   /** The items currently added, in the order the tiles are shown. */

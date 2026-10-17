@@ -19,7 +19,7 @@ interface PriceUpdateWatcher {
 export class PriceSummary {
   private readonly mainPay: Locator;
   private readonly allPay: Locator;
-  private readonly listPrice: Locator;
+  private readonly priceBubble: Locator;
   private readonly monthlyPeriod: Locator;
   private readonly annualPeriod: Locator;
 
@@ -27,8 +27,7 @@ export class PriceSummary {
     const hero = page.getByTestId('baseQuoteTopWrapper');
     this.mainPay = page.locator(`#${PAY_BUTTON_ID}`);
     this.allPay = page.getByRole('button', { name: /^Pay \$/ });
-    // Also matches a wrapper inside the price bubble that repeats the amount; the amount itself comes first.
-    this.listPrice = hero.getByText(new RegExp(`^${AMOUNT.source}$`)).first();
+    this.priceBubble = hero.locator('button:disabled');
     this.monthlyPeriod = hero.locator('label', { hasText: 'MONTHLY' });
     this.annualPeriod = hero.locator('label', { hasText: 'ANNUAL' });
   }
@@ -99,12 +98,12 @@ export class PriceSummary {
 
   /** The crossed-out monthly amount above the Price. */
   async monthlyListPrice(): Promise<Money> {
-    return Money.parse(await this.listPriceText());
+    return Money.parse(await this.listPriceText('PER MONTH'));
   }
 
   /** The crossed-out annual amount above the Price. */
   async annualListPrice(): Promise<Money> {
-    return Money.parse(await this.listPriceText());
+    return Money.parse(await this.listPriceText('PER YEAR'));
   }
 
   async switchToAnnual(): Promise<void> {
@@ -119,8 +118,19 @@ export class PriceSummary {
     return this.page.evaluate(() => (window as unknown as PriceUpdateWatcher).priceUpdates);
   }
 
-  private async listPriceText(): Promise<string> {
-    return (await this.listPrice.textContent()) ?? '';
+  /**
+   * The bubble is read only for its crossed-out amount, and only while it shows `periodText`,
+   * so a List price of the other Billing period is never returned. The amount's text also
+   * appears on a wrapper inside the bubble; the amount itself comes first.
+   */
+  private async listPriceText(periodText: string): Promise<string> {
+    const bubble = this.priceBubble.filter({ hasText: periodText });
+    return (
+      (await bubble
+        .getByText(new RegExp(`^${AMOUNT.source}$`))
+        .first()
+        .textContent()) ?? ''
+    );
   }
 
   /** The sticky header's Pay button only renders after scrolling, so scroll to the bottom one. */

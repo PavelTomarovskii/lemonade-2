@@ -1,11 +1,11 @@
 import { expect, test } from '../../../src/fixtures';
 import { Money } from '../../../src/money';
 import { ADD_ON_HEADINGS } from '../../../src/pages/components/add-on';
-import { ADD_ONS } from '../../../src/test-data/add-ons';
+import { ADD_ON_NAMES, OFFERED_FREE } from '../../../src/test-data/add-ons';
 import { Tag } from '../../../src/tags';
 
 test.describe('Add-ons price behaviour', { tag: Tag.addOns }, () => {
-  for (const { name, free } of ADD_ONS) {
+  for (const name of ADD_ON_NAMES) {
     test.describe(ADD_ON_HEADINGS[name], () => {
       test('returns to the Baseline price when switched off', async ({ quote, baselinePrice }) => {
         const addOn = quote.addOn(name);
@@ -17,7 +17,7 @@ test.describe('Add-ons price behaviour', { tag: Tag.addOns }, () => {
         expect(await quote.priceSummary.monthlyPrice()).toEqual(baselinePrice);
       });
 
-      if (free) {
+      if (OFFERED_FREE[name]) {
         test('leaves the Price unchanged when switched on', async ({ quote, baselinePrice }) => {
           const addOn = quote.addOn(name);
           expect(await addOn.isFree(), 'the page labels the Add-on as free').toBe(true);

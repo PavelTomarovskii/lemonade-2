@@ -25,6 +25,10 @@ test.describe('Add-on configuration variants', { tag: Tag.addOns }, () => {
       test('returns to the Baseline price when switched off', async ({ quote, baselinePrice }) => {
         const addOn = quote.addOn(name);
         await addOn.switchOn(options);
+        expect(
+          (await quote.priceSummary.monthlyPrice()).isGreaterThan(baselinePrice),
+          'the variant raised the Price before it is switched off',
+        ).toBe(true);
 
         await addOn.switchOff();
 

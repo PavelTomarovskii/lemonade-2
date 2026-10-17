@@ -18,7 +18,8 @@ interface PriceUpdateWatcher {
  */
 export class PriceSummary {
   private readonly mainPay: Locator;
-  private readonly allPay: Locator;
+  private readonly stickyPay: Locator;
+  private readonly bottomPay: Locator;
   private readonly priceBubble: Locator;
   private readonly monthlyPeriod: Locator;
   private readonly annualPeriod: Locator;
@@ -26,7 +27,15 @@ export class PriceSummary {
   constructor(private readonly page: Page) {
     const hero = page.getByTestId('baseQuoteTopWrapper');
     this.mainPay = page.locator(`#${PAY_BUTTON_ID}`);
-    this.allPay = page.getByRole('button', { name: /^Pay \$/ });
+    const payButton = page.getByRole('button', { name: /^Pay \$/ });
+    this.stickyPay = page.locator('header').getByRole('button', { name: /^Pay \$/ });
+    // The innermost block that holds both the section heading and its Pay button.
+    this.bottomPay = page
+      .locator('div')
+      .filter({ has: page.getByRole('heading', { name: 'Activate Your Insurance' }) })
+      .filter({ has: payButton })
+      .last()
+      .getByRole('button', { name: /^Pay \$/ });
     this.priceBubble = hero.locator('button:disabled');
     this.monthlyPeriod = hero.locator('label', { hasText: 'MONTHLY' });
     this.annualPeriod = hero.locator('label', { hasText: 'ANNUAL' });
@@ -135,10 +144,12 @@ export class PriceSummary {
 
   /** The sticky header's Pay button only renders after scrolling, so scroll to the bottom one. */
   private async readAllPayPrices(periodText: string): Promise<Money[]> {
-    await this.allPay.last().scrollIntoViewIfNeeded();
-    await this.allPay.nth(2).waitFor();
-    const buttons = this.allPay.filter({ hasText: periodText });
-    return Promise.all((await buttons.all()).map(readAmount));
+    await this.bottomPay.scrollIntoViewIfNeeded();
+    return Promise.all(
+      [this.mainPay, this.stickyPay, this.bottomPay].map((button) =>
+        readAmount(button.filter({ hasText: periodText })),
+      ),
+    );
   }
 }
 

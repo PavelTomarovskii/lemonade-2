@@ -85,6 +85,12 @@ export class AddItemDialog {
     await this.action.click();
   }
 
+  /** Closes the dialog without adding anything. */
+  async close(): Promise<void> {
+    await this.root.getByRole('button', { name: 'close dialog' }).click();
+    await this.waitUntilClosed();
+  }
+
   async waitUntilClosed(): Promise<void> {
     await this.root.waitFor({ state: 'hidden' });
   }

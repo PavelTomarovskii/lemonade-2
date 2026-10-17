@@ -8,6 +8,16 @@ export interface PriceChange {
   apply(quote: QuotePage): Promise<void>;
 }
 
+/** The lowest or highest Deductible on offer; throws rather than guess when it offers none. */
+async function extremeDeductible(quote: QuotePage, which: 'lowest' | 'highest'): Promise<Money> {
+  const ascending = (await quote.deductible.optionAmounts()).sort((a, b) => a.cents - b.cents);
+  const amount = which === 'lowest' ? ascending[0] : ascending[ascending.length - 1];
+  if (!amount) {
+    throw new Error('The Deductible offers no options');
+  }
+  return amount;
+}
+
 /**
  * Price-changing actions, one per kind of control, none of them touching a Coverage step with a
  * known bug. Each starts from a fresh Quote and moves the Price in the stated direction.
@@ -26,18 +36,12 @@ export const PRICE_CHANGES: readonly PriceChange[] = [
   {
     name: 'choosing the lowest Deductible',
     direction: 'raises',
-    apply: async (quote) => {
-      const [lowest] = (await quote.deductible.optionAmounts()).sort((a, b) => a.cents - b.cents);
-      await quote.deductible.select(lowest ?? Money.ZERO);
-    },
+    apply: async (quote) => quote.deductible.select(await extremeDeductible(quote, 'lowest')),
   },
   {
     name: 'choosing the highest Deductible',
     direction: 'lowers',
-    apply: async (quote) => {
-      const [highest] = (await quote.deductible.optionAmounts()).sort((a, b) => b.cents - a.cents);
-      await quote.deductible.select(highest ?? Money.ZERO);
-    },
+    apply: async (quote) => quote.deductible.select(await extremeDeductible(quote, 'highest')),
   },
   {
     name: 'switching on a paid Add-on',

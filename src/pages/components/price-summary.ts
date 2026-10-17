@@ -26,16 +26,11 @@ export class PriceSummary {
 
   constructor(private readonly page: Page) {
     const hero = page.getByTestId('baseQuoteTopWrapper');
-    this.mainPay = page.locator(`#${PAY_BUTTON_ID}`);
     const payButton = page.getByRole('button', { name: /^Pay \$/ });
+    this.mainPay = page.locator(`#${PAY_BUTTON_ID}`);
     this.stickyPay = page.locator('header').getByRole('button', { name: /^Pay \$/ });
-    // The innermost block that holds both the section heading and its Pay button.
-    this.bottomPay = page
-      .locator('div')
-      .filter({ has: page.getByRole('heading', { name: 'Activate Your Insurance' }) })
-      .filter({ has: payButton })
-      .last()
-      .getByRole('button', { name: /^Pay \$/ });
+    // Last in document order: the header's and the main Pay button come before it.
+    this.bottomPay = payButton.last();
     this.priceBubble = hero.locator('button:disabled');
     this.monthlyPeriod = hero.locator('label', { hasText: 'MONTHLY' });
     this.annualPeriod = hero.locator('label', { hasText: 'ANNUAL' });

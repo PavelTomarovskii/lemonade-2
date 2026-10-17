@@ -67,7 +67,7 @@ test.describe('Quote components: Valuable items and Add-ons', { tag: Tag.smoke }
 
   test('the add dialog validates the value typed into it', async ({ quote }) => {
     const dialog = await quote.valuableItems.openAddDialog('bicycles');
-    await dialog.enterValue(Money.fromCents(60_000_00));
+    await dialog.enterValue(Money.fromCents(6_000_000));
     expect(await dialog.canConfirm()).toBe(false);
     await dialog.enterValue(Money.fromCents(300_000));
     expect(await dialog.canConfirm()).toBe(true);

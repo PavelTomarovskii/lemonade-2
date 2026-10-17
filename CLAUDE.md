@@ -22,9 +22,10 @@ Keep every file inside this repository. Never write to the system temp dir or a 
 
 ## Delivery workflow
 
-- The plan is spec #1 and its sub-issue tickets, grouped into GitHub Milestones M1–M6. Work one milestone at a time, tickets in "blocked by" order.
-- One branch and one pull request per milestone. Small conventional commits; the PR closes that milestone's tickets. `main` is protected: rebase merges only, never squash.
-- Stop after each milestone's PR is open, so the repository owner can review it before the next milestone starts.
+- The plan is spec #1 and its sub-issue tickets, grouped into GitHub Milestones M1–M6. Work one ticket at a time: milestones in order, tickets in "blocked by" order.
+- One branch and one pull request per ticket. Small conventional commits; the PR closes its ticket. `main` is protected: rebase merges only, never squash.
+- Stop after each ticket's PR is open, so the repository owner can review and merge it before the next ticket starts.
+- Implement ADRs and spec decisions as written. If one seems worth changing, ask before building an alternative.
 - Never commit `README.md` changes without the owner's prior approval of the exact text.
 - Show drafts and wait for approval before creating batches of GitHub issues (e.g. the known-bug issues).
 - Run GitHub operations as `PavelTomarovskii`; check `gh auth status` first and switch accounts if needed.

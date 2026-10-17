@@ -1,8 +1,10 @@
 import type { Page } from '@playwright/test';
 import { CookieBanner } from './components/cookie-banner';
+import { AddOn, type AddOnName } from './components/add-on';
 import { CoverageStepper, type CoverageName } from './components/coverage-stepper';
 import { DeductibleSelect } from './components/deductible-select';
 import { PriceSummary } from './components/price-summary';
+import { ValuableItems } from './components/valuable-items';
 
 /**
  * The Quote page. Holds no assertions. Never reload it or use "Start over" (both lead to a 404,
@@ -12,6 +14,7 @@ export class QuotePage {
   readonly cookieBanner: CookieBanner;
   readonly priceSummary: PriceSummary;
   readonly deductible: DeductibleSelect;
+  readonly valuableItems: ValuableItems;
 
   constructor(
     private readonly page: Page,
@@ -20,10 +23,15 @@ export class QuotePage {
     this.cookieBanner = new CookieBanner(page);
     this.priceSummary = new PriceSummary(page);
     this.deductible = new DeductibleSelect(page, this.priceSummary);
+    this.valuableItems = new ValuableItems(page, this.priceSummary);
   }
 
   coverage(name: CoverageName): CoverageStepper {
     return new CoverageStepper(this.page, this.priceSummary, name);
+  }
+
+  addOn<Name extends AddOnName>(name: Name): AddOn<Name> {
+    return new AddOn(this.page, this.priceSummary, name);
   }
 
   /** Opens the Quote at its default state, once its Price is shown. */

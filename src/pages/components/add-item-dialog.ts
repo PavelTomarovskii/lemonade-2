@@ -30,26 +30,27 @@ export class AddItemDialog {
   /**
    * Types the value key by key, so validation re-runs, then leaves the field, which is when the
    * action button's claimed Price impact refreshes. A value inside the allowed range is
-   * simulated by the page, so this returns once that answer is in.
+   * simulated by the page, and the button shows the new claim only some time after that answer
+   * arrives, so this waits for the button's text to change. A value equal to the one already
+   * in the field changes nothing, so it waits for nothing; a different value whose premium
+   * rounds to the same claim would wait in vain.
    */
   async enterValue(value: Money): Promise<void> {
     const digits = String(value.cents / 100);
-    const simulated = this.isInRange(value)
-      ? this.page.waitForResponse((response) =>
-          new URL(response.url()).pathname.endsWith('/simulation/scheduled-item'),
-        )
-      : undefined;
+    const waitsForClaim =
+      this.isInRange(value) && (await this.valueInput.inputValue()).replace(/\D/g, '') !== digits;
+    const claimBefore = await this.claimText();
     await this.valueInput.clear();
     await this.valueInput.pressSequentially(digits);
     await this.valueInput.press('Tab');
-    await simulated;
-    // Let the page render the answer it has just received.
-    await this.page.evaluate(() => new Promise((resolve) => requestAnimationFrame(resolve)));
+    if (waitsForClaim) {
+      await this.action.locator('span').first().filter({ hasNotText: claimBefore }).waitFor();
+    }
   }
 
   /** The monthly Price impact the action button claims for the value entered. */
   async claimedImpact(): Promise<Money> {
-    return claimedImpactOf((await this.action.locator('span').first().textContent()) ?? '');
+    return claimedImpactOf(await this.claimText());
   }
 
   /**
@@ -86,6 +87,10 @@ export class AddItemDialog {
 
   async waitUntilClosed(): Promise<void> {
     await this.root.waitFor({ state: 'hidden' });
+  }
+
+  private async claimText(): Promise<string> {
+    return (await this.action.locator('span').first().textContent()) ?? '';
   }
 
   private isInRange(value: Money): boolean {

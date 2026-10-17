@@ -52,10 +52,21 @@ export class AddItemDialog {
     return claimedImpactOf((await this.action.locator('span').first().textContent()) ?? '');
   }
 
-  /** The validation message shown for the value entered, or null when there is none. */
+  /**
+   * The validation message the page shows for the value entered, or null when it shows none.
+   * The page validates after a short debounce, and a message from an earlier value stays up
+   * until then, so this can lag: to read the message for an invalid value use
+   * `waitForValidationError`. The absence of a message cannot be waited for.
+   */
   async validationError(): Promise<string | null> {
     const text = ((await this.error.textContent()) ?? '').trim();
     return text === '' ? null : text;
+  }
+
+  /** Waits for the validation message to appear, then returns it. */
+  async waitForValidationError(): Promise<string> {
+    await this.error.filter({ hasText: /\S/ }).waitFor();
+    return (await this.validationError()) ?? '';
   }
 
   async canConfirm(): Promise<boolean> {

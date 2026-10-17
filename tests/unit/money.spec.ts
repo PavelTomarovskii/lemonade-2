@@ -1,7 +1,42 @@
 import { expect, test } from '@playwright/test';
 import { Money } from '../../src/money';
 
-test.describe('parsing', () => {
+const MALFORMED = [
+  '',
+  ' ',
+  '14.33',
+  '$',
+  '$.50',
+  '$14.',
+  '$1.234',
+  '$1,00',
+  '$1,0000',
+  '$,100',
+  '$1,000,00',
+  '$1 000',
+  '$abc',
+  '$-1.50',
+  '++$1.50',
+  ' $14.33',
+  '$14.33 ',
+  '$14.33 / month',
+  'Pay $14.33',
+  'STARTS FROM +$0.83/MO',
+  'free',
+  'FREE/MO',
+  '€14.33',
+  '$9007199254740993',
+];
+
+function expectRejected(parse: (text: string) => Money, texts: string[]) {
+  for (const text of texts) {
+    test(`rejects "${text}" and names it in the error`, () => {
+      expect(() => parse(text)).toThrow(`Cannot read "${text}" as a money amount`);
+    });
+  }
+}
+
+test.describe('parsing a period-free amount', () => {
   const supported: [string, string, number][] = [
     ['the Price', '$14.33', 1433],
     ['the List price', '$15.33', 1533],
@@ -11,12 +46,6 @@ test.describe('parsing', () => {
     ['a Coverage with two thousands separators', '$1,000,000', 100_000_000],
     ['a Deductible', '$250', 25_000],
     ['a Deductible with a thousands separator', '$2,500', 250_000],
-    ['a Price impact with two decimals', '+$1.67', 167],
-    ['a Price impact with a per-month suffix', '+$1.67/MO', 167],
-    ['a Price impact with one decimal', '+$4.6/MO', 460],
-    ['a Price impact with one decimal and no suffix', '+$4.6', 460],
-    ['a Price impact with a trailing zero', '+$4.60/MO', 460],
-    ['a Price impact under a dollar', '+$0.83/MO', 83],
     ['a negative amount', '-$1.50', -150],
     ['zero', '$0.00', 0],
     ['FREE', 'FREE', 0],
@@ -28,40 +57,58 @@ test.describe('parsing', () => {
     });
   }
 
-  const unsupported = [
-    '',
-    ' ',
-    '14.33',
-    '$',
-    '$.50',
-    '$14.',
-    '$1.234',
-    '$1,00',
-    '$1,0000',
-    '$,100',
-    '$1,000,00',
-    '$1 000',
-    '$abc',
-    '$-1.50',
-    '++$1.50',
-    ' $14.33',
-    '$14.33 ',
-    '$14.33/YR',
-    '$14.33/mo',
-    '$14.33 / month',
-    'Pay $14.33',
-    'STARTS FROM +$0.83/MO',
-    'free',
-    'FREE/MO',
-    '€14.33',
-    '$9007199254740993',
+  expectRejected(
+    (text) => Money.parse(text),
+    [...MALFORMED, '+$1.67', '$14.33/MO', '+$1.67/MO', '$14.33/YR', '+$20.04/YR'],
+  );
+});
+
+test.describe('parsing a monthly Price impact', () => {
+  const supported: [string, string, number][] = [
+    ['two decimals', '+$1.67', 167],
+    ['a per-month suffix', '+$1.67/MO', 167],
+    ['one decimal', '+$4.6/MO', 460],
+    ['one decimal and no suffix', '+$4.6', 460],
+    ['a trailing zero', '+$4.60/MO', 460],
+    ['an amount under a dollar', '+$0.83/MO', 83],
+    ['a thousands separator', '+$1,000.50/MO', 100_050],
+    ['a negative sign', '-$1.50/MO', -150],
+    ['no sign', '$1.67/MO', 167],
+    ['FREE', 'FREE', 0],
   ];
 
-  for (const text of unsupported) {
-    test(`rejects "${text}" and names it in the error`, () => {
-      expect(() => Money.parse(text)).toThrow(`Cannot read "${text}" as a money amount`);
+  for (const [description, text, cents] of supported) {
+    test(`reads an impact with ${description} "${text}" as ${String(cents)} cents`, () => {
+      expect(Money.parseMonthlyImpact(text).cents).toBe(cents);
     });
   }
+
+  expectRejected(
+    (text) => Money.parseMonthlyImpact(text),
+    [...MALFORMED, '+$20.04/YR', '$14.33/YR', '+$1.67/mo'],
+  );
+});
+
+test.describe('parsing an annual Price impact', () => {
+  const supported: [string, string, number][] = [
+    ['two decimals and a per-year suffix', '+$20.04/YR', 2004],
+    ['no suffix', '+$20.04', 2004],
+    ['a trailing zero', '+$6.00/YR', 600],
+    ['a thousands separator', '+$1,000.50/YR', 100_050],
+    ['a negative sign', '-$12.00/YR', -1200],
+    ['FREE', 'FREE', 0],
+  ];
+
+  for (const [description, text, cents] of supported) {
+    test(`reads an impact with ${description} "${text}" as ${String(cents)} cents`, () => {
+      expect(Money.parseAnnualImpact(text).cents).toBe(cents);
+    });
+  }
+
+  expectRejected(
+    (text) => Money.parseAnnualImpact(text),
+    [...MALFORMED, '+$1.67/MO', '$14.33/MO', '+$20.04/yr'],
+  );
 });
 
 test.describe('formatting', () => {
@@ -109,7 +156,9 @@ test.describe('arithmetic', () => {
   });
 
   test('adds a Price impact to a Price', () => {
-    expect(Money.parse('$14.33').plus(Money.parse('+$1.67/MO')).format()).toBe('$16.00');
+    expect(Money.parse('$14.33').plus(Money.parseMonthlyImpact('+$1.67/MO')).format()).toBe(
+      '$16.00',
+    );
   });
 
   test('subtracts to the change between two Prices', () => {
@@ -132,7 +181,7 @@ test.describe('comparison', () => {
   const higher = Money.parse('$14.34');
 
   test('treats equal amounts as equal however they were written', () => {
-    expect(Money.parse('+$4.6/MO').equals(Money.parse('$4.60'))).toBe(true);
+    expect(Money.parseMonthlyImpact('+$4.6/MO').equals(Money.parse('$4.60'))).toBe(true);
   });
 
   test('tells different amounts apart', () => {

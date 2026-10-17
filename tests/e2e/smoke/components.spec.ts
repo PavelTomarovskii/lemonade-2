@@ -50,3 +50,60 @@ test.describe('Quote components', { tag: Tag.smoke }, () => {
     expect(await deductible.currentValue()).toEqual(Money.fromCents(100_000));
   });
 });
+
+test.describe('Quote components: Valuable items and Add-ons', { tag: Tag.smoke }, () => {
+  test('a Valuable item is added, listed and removed', async ({ quote }) => {
+    const { valuableItems } = quote;
+    const value = Money.fromCents(200_000);
+
+    const claimed = await valuableItems.add('jewelry', value);
+    expect(claimed.cents).toBeGreaterThan(0);
+    expect(await valuableItems.list()).toEqual([{ kind: 'jewelry', value }]);
+    expect(await valuableItems.tileMonthlyImpact('jewelry')).toEqual(claimed);
+
+    await valuableItems.remove('jewelry');
+    expect(await valuableItems.list()).toEqual([]);
+  });
+
+  test('the add dialog validates the value typed into it', async ({ quote }) => {
+    const dialog = await quote.valuableItems.openAddDialog('bicycles');
+    await dialog.enterValue(Money.fromCents(60_000_00));
+    expect(await dialog.canConfirm()).toBe(false);
+    await dialog.enterValue(Money.fromCents(300_000));
+    expect(await dialog.canConfirm()).toBe(true);
+  });
+
+  test('an Add-on with a form is switched on and off', async ({ quote }) => {
+    const waterBackup = quote.addOn('waterBackup');
+    expect(await waterBackup.isOn()).toBe(false);
+    expect(await waterBackup.isFree()).toBe(false);
+
+    const claimed = await waterBackup.switchOn({ limit: Money.fromCents(1_000_000) });
+    expect(claimed.cents).toBeGreaterThan(0);
+    expect(await waterBackup.isOn()).toBe(true);
+
+    await waterBackup.switchOff();
+    expect(await waterBackup.isOn()).toBe(false);
+  });
+
+  test('a free Add-on with a form is switched on and off', async ({ quote }) => {
+    const spouse = quote.addOn('spouse');
+    expect(await spouse.isFree()).toBe(true);
+
+    expect(await spouse.switchOn()).toEqual(Money.ZERO);
+    expect(await spouse.isOn()).toBe(true);
+
+    await spouse.switchOff();
+    expect(await spouse.isOn()).toBe(false);
+  });
+
+  test('an Add-on without a form is switched on and off', async ({ quote }) => {
+    const equipment = quote.addOn('equipmentBreakdown');
+
+    expect((await equipment.switchOn()).cents).toBeGreaterThan(0);
+    expect(await equipment.isOn()).toBe(true);
+
+    await equipment.switchOff();
+    expect(await equipment.isOn()).toBe(false);
+  });
+});

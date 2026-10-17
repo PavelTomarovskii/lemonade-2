@@ -1,6 +1,6 @@
 # Known bugs
 
-Every defect found in the Quote page so far, with its issue, severity, status, a screenshot and the tests that mark it. The GitHub issue number is each bug's only ID. Steps to reproduce, expected and actual results and the environment are in the issue itself.
+Every defect found in the Quote page so far, with its issue, severity, status and the tests that mark it. Each issue carries its own screenshot. The GitHub issue number is each bug's only ID. Steps to reproduce, expected and actual results and the environment are in the issue itself.
 
 All figures were observed on the public test Quote (Baseline price $14.33 / month) on 2026-10-16.
 
@@ -23,7 +23,7 @@ Severity: High. Status: Open.
 
 Stepping Loss of Use up from $20,000 to $25,000 drops the Price from $14.73 back to $14.33, the same as at $15,000. At $30,000 it is $15.28.
 
-![Loss of Use at $25,000 with the Price back at $14.33](docs/bug-evidence/bug-29-loss-of-use-25k.png)
+Screenshot: attached to [#29](https://github.com/PavelTomarovskii/lemonade-2/issues/29).
 
 Tests marked as expected failures, all in `tests/e2e/coverage/coverage-price.spec.ts` (data in `src/test-data/coverage-ladders.ts`):
 
@@ -35,7 +35,7 @@ Severity: Medium. Status: Open.
 
 The Price stays $14.33 at $1,000, $2,000, $3,000 and $4,000. Only the step to $5,000 changes it ($14.93).
 
-![Medical payments at $4,000 with the Price still $14.33](docs/bug-evidence/bug-30-medical-payments-4k.png)
+Screenshot: attached to [#30](https://github.com/PavelTomarovskii/lemonade-2/issues/30).
 
 Tests marked as expected failures, all in `tests/e2e/coverage/coverage-price.spec.ts` (data in `src/test-data/coverage-ladders.ts`):
 
@@ -49,7 +49,7 @@ Severity: Low. Status: Open.
 
 After adding Jewelry at $5,000, the add dialog claims "+$4.60" but the item's tile reads "+$4.6/MO". The Price itself is right ($14.33 to $18.93). Cameras at $5,000 are affected the same way.
 
-![Jewelry tile reading +$4.6/MO](docs/bug-evidence/bug-31-item-tile-one-decimal.png)
+Screenshot: attached to [#31](https://github.com/PavelTomarovskii/lemonade-2/issues/31).
 
 Tests marked as expected failures, all in `tests/e2e/valuable-items/valuable-items-price.spec.ts` (data in `src/test-data/valuable-items.ts`):
 
@@ -64,7 +64,7 @@ Severity: High. Status: Open.
 
 Once loaded, the Quote's address loses its `/qa-interview-task` base path, so a reload or the page's own "Start over" opens GitHub Pages' 404 page. The suite never reloads: every test opens a fresh Quote instead.
 
-![GitHub Pages 404 after a reload](docs/bug-evidence/bug-32-reload-404.png)
+Screenshot: attached to [#32](https://github.com/PavelTomarovskii/lemonade-2/issues/32).
 
 ### #33: The "1% discount" is actually a flat $1 off
 
@@ -72,7 +72,7 @@ Severity: High. Status: Open.
 
 The bubble advertises a "1% protective devices discount", but the List price is always exactly $1.00 above the Price ($15.33 against $14.33, which is 6.5%), whatever the Coverage.
 
-![Price bubble with the crossed-out $15.33 and the "1% protective devices discount" label](docs/bug-evidence/bug-33-discount-label.png)
+Screenshot: attached to [#33](https://github.com/PavelTomarovskii/lemonade-2/issues/33).
 
 The same issue also records:
 
@@ -85,4 +85,4 @@ Severity: High. Status: Open.
 
 In Playwright WebKit the page stays on "Loading Lemonade renters quote..." and the address becomes `https://lemonade-hq.github.io/`. Not yet confirmed in desktop Safari. The WebKit project is switched off in `playwright.config.ts` until this is fixed.
 
-![WebKit stuck on the loading message](docs/bug-evidence/bug-23-webkit-stuck-loading.png)
+Screenshot: attached to [#23](https://github.com/PavelTomarovskii/lemonade-2/issues/23).
